@@ -13,7 +13,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
 app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH', 1048576))  # 1MB default
 
 # Configure CORS
-cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:3000', 'https://dpaste-clone-rwab.vercel.app/').split(',')
+cors_origins = os.getenv('CORS_ORIGINS', 'https://dpaste-clone-rwab.vercel.app/').split(',')
 print(f"CORS allowed origins: {cors_origins}")
 
 CORS(
