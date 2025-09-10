@@ -22,16 +22,20 @@ function App() {
   const fetchPaste = async (pasteId) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/paste/${pasteId}`);
-      if (!response.ok) {
-        throw new Error('Paste not found');
-      }
+      setError('');
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/paste/${pasteId}`);
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch paste');
+      }
+      
       setCurrentPaste(data);
       setViewMode('view');
     } catch (err) {
-      setError('Failed to fetch paste');
-      console.error(err);
+      setError(err.message || 'Failed to fetch paste');
+      console.error('Error fetching paste:', err);
+      setViewMode('create'); // Switch back to create view on error
     } finally {
       setLoading(false);
     }
@@ -39,27 +43,48 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!content.trim()) {
+    setError(''); // Clear previous errors
+    
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
       setError('Please enter some content');
       return;
     }
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/paste', {
+      console.log('Sending request to:', `${process.env.REACT_APP_API_URL}/paste`);
+      console.log('Request payload:', { content: trimmedContent });
+      
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/paste`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content: trimmedContent }),
       });
 
+      console.log('Response status:', response.status);
+      
+      // Clone the response to read it multiple times if needed
+      const responseClone = response.clone();
+      let responseData;
+      
+      try {
+        responseData = await response.json();
+        console.log('Response data:', responseData);
+      } catch (jsonError) {
+        console.error('Error parsing JSON response:', jsonError);
+        const text = await responseClone.text();
+        console.error('Raw response text:', text);
+        throw new Error('Invalid response from server');
+      }
+      
       if (!response.ok) {
-        throw new Error('Failed to create paste');
+        throw new Error(responseData.error || `Server error: ${response.status}`);
       }
 
-      const data = await response.json();
-      setPasteUrl(window.location.origin + data.url);
+      setPasteUrl(window.location.origin + responseData.url);
       setViewMode('created');
     } catch (err) {
       setError('Failed to create paste');
